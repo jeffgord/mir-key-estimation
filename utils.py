@@ -5,7 +5,7 @@ import librosa
 import numpy as np
 import madmom
 
-def download_metadata(data_home='data/'):
+def download_metadata(data_home):
     """
     Download FMAKv2 metadata from Zenodo.
 
@@ -25,7 +25,7 @@ def download_metadata(data_home='data/'):
     return file_path
 
 
-def load_data(data_home='data/', subset=True):
+def load_data(data_home='subset/', subset=True):
     dataset = mirdata.initialize('fma_keys', data_home=data_home)
 
     if subset:
