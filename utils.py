@@ -83,3 +83,5 @@ def madmom_key_predict(track):
     predictions = key_recognizer(track.audio_path)
     predicted_key = madmom.features.key.key_prediction_to_label(predictions)
     return predicted_key
+
+chroma_transformer = 
