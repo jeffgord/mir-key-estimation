@@ -6,6 +6,7 @@ import numpy as np
 import madmom
 from chroma_transformer import ChromaTransformer, KeyLabelConverter, extract_features
 import torch
+from music21 import key
 
 def download_metadata(data_home):
     """
@@ -37,6 +38,32 @@ def load_data(data_home='subset/', subset=True):
 
     download_metadata(data_home=data_home) # download metadata separately
     return dataset
+
+def normalize_key(key_str):
+    """
+    Convert a key string to a canonical form.
+    E.g., "Gb major" -> "F# major"
+    Enharmonically equivalent keys map to the same representation.
+    """
+    try:
+        raw_tonic, raw_mode = key_str.split()
+        k = key.Key(raw_tonic, raw_mode.lower())
+        # Get the pitch and convert to sharp representation (canonical form)
+        tonic = k.tonic
+        pc = tonic.pitchClass  # 0-11 representing pitch class
+        
+        # Canonical pitch names preferring sharps
+        canonical_names = [
+            'C', 'Db', 'D', 'Eb', 'E', 'F',
+            'F#', 'G', 'Ab', 'A', 'Bb', 'B'
+        ]
+        
+        canonical_tonic = canonical_names[pc]
+        mode = k.mode
+        
+        return f"{canonical_tonic} {mode}"
+    except Exception as e:
+        print(e)
 
 ROOTS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 MAJOR_PROFILE = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
