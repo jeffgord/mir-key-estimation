@@ -257,87 +257,88 @@ def train(model, criterion, optimizer, train_loader, val_loader, device, num_epo
     model.load_state_dict(best_state)
     return best_epoch, best_val_acc
 
-parser = argparse.ArgumentParser()
-parser.add_argument("fold", type=int, help="Fold number")
-args = parser.parse_args()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("fold", type=int, help="Fold number")
+    args = parser.parse_args()
 
-fold_dir     = f"out/folds/fold_{args.fold:02d}"
-features_dir = "features"
-train_csv    = os.path.join(fold_dir, "train.csv")
-val_csv      = os.path.join(fold_dir, "val.csv")
-test_csv     = os.path.join(fold_dir, "test.csv")
+    fold_dir     = f"out/folds/fold_{args.fold:02d}"
+    features_dir = "features"
+    train_csv    = os.path.join(fold_dir, "train.csv")
+    val_csv      = os.path.join(fold_dir, "val.csv")
+    test_csv     = os.path.join(fold_dir, "test.csv")
 
-train_set    = ChromaDataset(train_csv, features_dir, augment=True)
-val_set      = ChromaDataset(val_csv,   features_dir, augment=False)
-dataset_test = ChromaDataset(test_csv,  features_dir, augment=False)
+    train_set    = ChromaDataset(train_csv, features_dir, augment=True)
+    val_set      = ChromaDataset(val_csv,   features_dir, augment=False)
+    dataset_test = ChromaDataset(test_csv,  features_dir, augment=False)
 
-# Setup device
-if torch.backends.mps.is_available():
-    device = torch.device("mps")
-    print("Using Metal Performance Shaders (MPS)")
-elif torch.cuda.is_available():
-    device = torch.device("cuda")
-    print("Using CUDA")
-else:
-    device = torch.device("cpu")
-    print("Using CPU")
+    # Setup device
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+        print("Using Metal Performance Shaders (MPS)")
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
+        print("Using CUDA")
+    else:
+        device = torch.device("cpu")
+        print("Using CPU")
 
-print("Load in data")
-train_loader = DataLoader(train_set, batch_size=128, shuffle=True, collate_fn=collate_batch, num_workers=4, pin_memory=True, prefetch_factor=2, persistent_workers=True)
-val_loader   = DataLoader(val_set,   batch_size=128, shuffle=False, collate_fn=collate_batch, num_workers=4, pin_memory=True)
-test_loader  = DataLoader(dataset_test, batch_size=128, shuffle=False, collate_fn=collate_batch, num_workers=4, pin_memory=True)
+    print("Load in data")
+    train_loader = DataLoader(train_set, batch_size=128, shuffle=True, collate_fn=collate_batch, num_workers=4, pin_memory=True, prefetch_factor=2, persistent_workers=True)
+    val_loader   = DataLoader(val_set,   batch_size=128, shuffle=False, collate_fn=collate_batch, num_workers=4, pin_memory=True)
+    test_loader  = DataLoader(dataset_test, batch_size=128, shuffle=False, collate_fn=collate_batch, num_workers=4, pin_memory=True)
 
-model = ChromaTransformer(d_model=64, nhead=4, num_layers=2).to(device)
-criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    model = ChromaTransformer(d_model=64, nhead=4, num_layers=2).to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-print(f"Model: ChromaTransformer ({total_params:,} params)")
-print(f"  - Input: 12-bin chroma, full song length, split into {model.chunk_size}-frame chunks")
-print(f"  - Local transformer: d_model={model.d_model}, {model.transformer_encoder.num_layers} layers, 4 heads — attends within each chunk (+ sinusoidal PE)")
-print(f"  - Chunk aggregation: learned attention pooling (weighted sum over chunks)")
-print(f"  - Output head: 64-dim MLP -> 24 classes (12 keys x major/minor)")
-print(f"  - Augmentation: random pitch shift (chroma roll) on train split")
-print("Training...")
+    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Model: ChromaTransformer ({total_params:,} params)")
+    print(f"  - Input: 12-bin chroma, full song length, split into {model.chunk_size}-frame chunks")
+    print(f"  - Local transformer: d_model={model.d_model}, {model.transformer_encoder.num_layers} layers, 4 heads — attends within each chunk (+ sinusoidal PE)")
+    print(f"  - Chunk aggregation: learned attention pooling (weighted sum over chunks)")
+    print(f"  - Output head: 64-dim MLP -> 24 classes (12 keys x major/minor)")
+    print(f"  - Augmentation: random pitch shift (chroma roll) on train split")
+    print("Training...")
 
-epochs_trained, final_acc = train(
-    model, criterion, optimizer, train_loader, val_loader, device,
-    num_epochs=200, verbose=True
-)
+    epochs_trained, final_acc = train(
+        model, criterion, optimizer, train_loader, val_loader, device,
+        num_epochs=200, verbose=True
+    )
 
-print(f"\n" + "="*60)
-print(f"Training complete!")
-print(f"Converged in {epochs_trained} epochs with {final_acc:.2f}% val accuracy")
-print(f"="*60)
+    print(f"\n" + "="*60)
+    print(f"Training complete!")
+    print(f"Converged in {epochs_trained} epochs with {final_acc:.2f}% val accuracy")
+    print(f"="*60)
 
-# Evaluate on held-out test set
-model.eval()
-all_probs, all_preds, all_labels = [], [], []
-with torch.no_grad():
-    for X_batch, y_batch in test_loader:
-        X_batch = X_batch.to(device)
-        outputs = model(X_batch)
-        probs = torch.softmax(outputs, dim=1).cpu().numpy()
-        preds = outputs.argmax(dim=1).cpu().numpy()
-        all_probs.append(probs)
-        all_preds.append(preds)
-        all_labels.append(y_batch.numpy())
+    # Evaluate on held-out test set
+    model.eval()
+    all_probs, all_preds, all_labels = [], [], []
+    with torch.no_grad():
+        for X_batch, y_batch in test_loader:
+            X_batch = X_batch.to(device)
+            outputs = model(X_batch)
+            probs = torch.softmax(outputs, dim=1).cpu().numpy()
+            preds = outputs.argmax(dim=1).cpu().numpy()
+            all_probs.append(probs)
+            all_preds.append(preds)
+            all_labels.append(y_batch.numpy())
 
-all_probs  = np.concatenate(all_probs,  axis=0)
-all_preds  = np.concatenate(all_preds,  axis=0)
-all_labels = np.concatenate(all_labels, axis=0)
+    all_probs  = np.concatenate(all_probs,  axis=0)
+    all_preds  = np.concatenate(all_preds,  axis=0)
+    all_labels = np.concatenate(all_labels, axis=0)
 
-test_acc = 100. * (all_preds == all_labels).mean()
-print(f"Test accuracy: {test_acc:.2f}%")
+    test_acc = 100. * (all_preds == all_labels).mean()
+    print(f"Test accuracy: {test_acc:.2f}%")
 
-out_dir  = "out/predictions"
-os.makedirs(out_dir, exist_ok=True)
-out_path = os.path.join(out_dir, f"fold_{args.fold:02d}_predictions.npz")
-np.savez(out_path, y_true=all_labels, y_pred=all_preds, probs=all_probs)
-print(f"Saved test predictions to {out_path}")
+    out_dir  = "out/predictions"
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, f"fold_{args.fold:02d}_predictions.npz")
+    np.savez(out_path, y_true=all_labels, y_pred=all_preds, probs=all_probs)
+    print(f"Saved test predictions to {out_path}")
 
-weights_dir = "out/weights"
-os.makedirs(weights_dir, exist_ok=True)
-weights_path = os.path.join(weights_dir, f"fold_{args.fold:02d}.pt")
-torch.save(model.state_dict(), weights_path)
-print(f"Saved model weights to {weights_path}")
+    weights_dir = "out/weights"
+    os.makedirs(weights_dir, exist_ok=True)
+    weights_path = os.path.join(weights_dir, f"fold_{args.fold:02d}.pt")
+    torch.save(model.state_dict(), weights_path)
+    print(f"Saved model weights to {weights_path}")

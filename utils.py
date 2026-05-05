@@ -4,6 +4,8 @@ import urllib.request
 import librosa
 import numpy as np
 import madmom
+from chroma_transformer import ChromaTransformer, KeyLabelConverter, extract_features
+import torch
 
 def download_metadata(data_home):
     """
@@ -84,4 +86,16 @@ def madmom_key_predict(track):
     predicted_key = madmom.features.key.key_prediction_to_label(predictions)
     return predicted_key
 
-chroma_transformer = 
+chroma_transformer_demo = ChromaTransformer(d_model=64, nhead=4, num_layers=2)
+demo_weights_path = 'chroma_transformer/weights/fold_10.pt'
+chroma_transformer_demo.load_state_dict(torch.load(demo_weights_path, map_location='cpu'))
+chroma_transformer_demo.eval()
+
+def chroma_transformer_predict(track):
+    chroma = extract_features.extract_chroma(track.audio_path)
+    features = torch.tensor(chroma, dtype=torch.float32).unsqueeze(0)
+    with torch.no_grad():
+        prediction = chroma_transformer_demo(features)
+    predicted_label = prediction.argmax(dim=1).item()
+    predicted_key = KeyLabelConverter.label_to_key(predicted_label)
+    return predicted_key
