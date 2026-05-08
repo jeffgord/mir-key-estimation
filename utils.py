@@ -77,6 +77,13 @@ MAJOR_PROFILE = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 
 MINOR_PROFILE = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
 
 def krumhansl_schmuckler_predict(track):
+    """
+    Predicts the key of a track using Chroma + Krumhansl-Schmuckler method.
+
+    Chroma features extracted following this tutorial: https://librosa.org/doc/main/auto_examples/plot_chroma.html
+    Key profiles from here: https://davidtemperley.com/wp-content/uploads/2015/11/temperley-mp99.pdf 
+    """
+
     # load audio
     y, sr = track.audio
 
@@ -116,6 +123,12 @@ def krumhansl_schmuckler_predict(track):
 key_recognizer = madmom.features.key.CNNKeyRecognitionProcessor()
 
 def madmom_key_predict(track):
+    """"
+    Predicts the key of a track using the Madmom library's CNNKeyRecognitionProcessor.
+
+    See this documentation for more details: https://madmom.readthedocs.io/en/v0.16/modules/features/key.html
+    And this for converting the prediction into an actual key: https://madmom.readthedocs.io/en/v0.16/modules/features/key.html#id1  
+    """
     predictions = key_recognizer(track.audio_path)
     predicted_key = madmom.features.key.key_prediction_to_label(predictions)
     return predicted_key
@@ -126,6 +139,9 @@ chroma_transformer_demo.load_state_dict(torch.load(demo_weights_path, map_locati
 chroma_transformer_demo.eval()
 
 def chroma_transformer_predict(track):
+    """
+    Predicts the key of a track using a custom Chroma Transformer model.
+    """
     chroma = extract_features.extract_chroma(track.audio_path)
     features = torch.tensor(chroma, dtype=torch.float32).unsqueeze(0)
     with torch.no_grad():
@@ -135,6 +151,11 @@ def chroma_transformer_predict(track):
     return predicted_key
 
 def get_avg_weighted_score(y_true, y_pred):
+    """
+    Calculates the MIREX weighted score for each prediction and returns the average score across all predictions.
+
+    See mirex website for more details: https://music-ir.org/mirex/wiki/2025:Audio_Key_Detection
+    """
     cumulative_score = 0.0
 
     for true, pred in zip(y_true, y_pred):
@@ -145,6 +166,9 @@ def get_avg_weighted_score(y_true, y_pred):
     return avg_score
 
 def get_metrics(predicted_keys, true_keys):
+    """
+    Computes various evaluation metrics for key estimation.
+    """
     return {
         'Accuracy': accuracy_score(true_keys, predicted_keys),
         'Precision (Macro)': precision_score(true_keys, predicted_keys, average='macro'),
