@@ -13,15 +13,15 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 def download_metadata(data_home):
     """
-    Download FMAKv2 metadata from Zenodo.
+    Download FMAKv2 from Zenodo.
 
-    This is an updated version of the annotations file with corrections. 
+    This is an updated version of the metadata file with corrected annotations. 
     """
     os.makedirs(data_home, exist_ok=True)
     file_path = os.path.join(data_home, 'fma_keys_metadata.csv')
     
     if os.path.exists(file_path):
-        print(f"File already exists at {file_path}")
+        print(f"V2 annotations already exist at {file_path}. Skipping download.")
         return file_path
     
     url = 'https://zenodo.org/records/12759100/files/fmakv2.csv'
@@ -32,17 +32,25 @@ def download_metadata(data_home):
 
 
 def load_data(data_home='subset/', subset=True):
+    """
+    Load the FMAKv2 dataset using mirdata, ensuring that the corrected metadata is used.
+    """
     dataset = mirdata.initialize('fma_keys', data_home=data_home)
 
     if subset:
         dataset.download(partial_download=['tracks-000-019'])
     else:
         dataset.download()
+        metadata_path = os.path.join(data_home, 'fma_keys_metadata.csv')
 
-    download_metadata(data_home=data_home) # download metadata separately
+        # delete the original metadata file with the bad annotations
+        if os.path.exists(metadata_path):
+            os.remove(metadata_path)
+
+    download_metadata(data_home=data_home) # download the correct annotations separately
     return dataset
 
-ROOTS = ['C', 'DB', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
+ROOTS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 
 def normalize_key(key_str):
     """
@@ -58,7 +66,7 @@ def normalize_key(key_str):
         pc = tonic.pitchClass  # 0-11 representing pitch class
 
         canonical_tonic = ROOTS[pc]
-        mode = k.mode
+        mode = k.mode.lower()
         
         return f"{canonical_tonic} {mode}"
     except Exception as e:
@@ -139,16 +147,10 @@ def get_avg_weighted_score(y_true, y_pred):
 def get_metrics(predicted_keys, true_keys):
     return {
         'Accuracy': accuracy_score(true_keys, predicted_keys),
-        'Average Weighted Score': get_avg_weighted_score(true_keys, predicted_keys),
-        'Precision (Micro)': precision_score(true_keys, predicted_keys, average='micro'),
         'Precision (Macro)': precision_score(true_keys, predicted_keys, average='macro'),
-        'Precision (Weighted)': precision_score(true_keys, predicted_keys, average='weighted'),
-        'Recall (Micro)': recall_score(true_keys, predicted_keys, average='micro'),
         'Recall (Macro)': recall_score(true_keys, predicted_keys, average='macro'),
-        'Recall (Weighted)': recall_score(true_keys, predicted_keys, average='weighted'),
-        'F1 Score (Micro)': f1_score(true_keys, predicted_keys, average='micro'),
         'F1 Score (Macro)': f1_score(true_keys, predicted_keys, average='macro'),
-        'F1 Score (Weighted)': f1_score(true_keys, predicted_keys, average='weighted'),
+        'Average MIREX Score': get_avg_weighted_score(true_keys, predicted_keys),
     }
 
 def print_metrics(metrics, name):
