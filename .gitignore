@@ -1,3 +1,4 @@
 __pycache__
 subset/
 .DS_Store
+data/fma_tracks.csv
