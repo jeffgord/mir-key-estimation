@@ -208,10 +208,17 @@ def is_parallel_key(key1: str, key2: str) -> bool:
     k2_norm = normalize_key(key2)
     return k1_norm.split()[0] == k2_norm.split()[0] and k1_norm.split()[1] != k2_norm.split()[1]
 
+def get_num_total_errors(predicted_keys, true_keys):
+    return sum(1 for pred, true in zip(predicted_keys, true_keys) if pred != true)
+
 def get_relative_key_error_proportion(predicted_keys, true_keys):
-    relative_errors = [is_relative_key(pred, true) for pred, true in zip(predicted_keys, true_keys)]
-    return sum(relative_errors) / len(relative_errors)
+    is_relative_error = [is_relative_key(pred, true) for pred, true in zip(predicted_keys, true_keys)]
+    num_relative_errors = sum(is_relative_error)
+    num_total_errors = get_num_total_errors(predicted_keys, true_keys)
+    return num_relative_errors / num_total_errors if num_total_errors > 0 else 0
 
 def get_parallel_key_error_proportion(predicted_keys, true_keys):
-    parallel_errors = [is_parallel_key(pred, true) for pred, true in zip(predicted_keys, true_keys)]
-    return sum(parallel_errors) / len(parallel_errors)
+    is_parallel_error = [is_parallel_key(pred, true) for pred, true in zip(predicted_keys, true_keys)]
+    num_parallel_errors = sum(is_parallel_error)
+    num_total_errors = get_num_total_errors(predicted_keys, true_keys)
+    return num_parallel_errors / num_total_errors if num_total_errors > 0 else 0
