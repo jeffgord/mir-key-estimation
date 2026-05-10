@@ -20,4 +20,8 @@ pip install -r requirements.txt
 
 - `demo.ipynb` - Demo notebook
 - `analysis.ipynb` - Full analysis notebook for paper
-- `utils.py` - Utility functions
+- `utils.py` - Utility functions for demo and analysis
+- `baseline_hpc` - Scripts for running the baseline methods on hpc in a parallelized fashion
+- `chroma_transformer` - Feature extraction, training pipeline, train/test splits, saved predictions, and model weights for the Chroma Transformer model
+- `data` - metadata used for analysis
+- `saves` - saved predictions of the various models on the subset of data used in the demo notebook
