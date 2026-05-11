@@ -10,7 +10,6 @@ import torch
 from music21 import key, scale
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-
 def download_metadata(data_home):
     """
     Download FMAKv2 from Zenodo.
