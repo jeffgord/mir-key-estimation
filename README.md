@@ -1,4 +1,4 @@
-# MIR - Key Estimation (Group 5)
+# MIR - Key Estimation (Group 4)
 
 ## Setup
 
